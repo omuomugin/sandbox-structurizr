@@ -1,13 +1,13 @@
 version: "3.3"
 
 services:
-  structurizr-app:
+  export:
     image: structurizr/cli:latest
     volumes:
       - ./:/usr/local/structurizr
     command: export -workspace app.dsl -format plantuml -output build
-  structurizr-system:
+  validate:
     image: structurizr/cli:latest
     volumes:
       - ./:/usr/local/structurizr
-    command: export -workspace system.dsl -format plantuml -output build
+    command: validate -workspace app.dsl

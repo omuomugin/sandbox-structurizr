@@ -1,9 +1,3 @@
-/*
- * This is a combined version of the following workspaces:
- *
- * - "Big Bank plc - System Landscape" (https://structurizr.com/share/28201/)
- * - "Big Bank plc - Internet Banking System" (https://structurizr.com/share/36141/)
-*/
 workspace "Big Bank plc" "This is an example workspace to illustrate the key features of Structurizr, via the DSL, based around a fictional online banking system." {
 
     model {
@@ -21,14 +15,7 @@ workspace "Big Bank plc" "This is an example workspace to illustrate the key fea
                 singlePageApplication = container "Single-Page Application" "Provides all of the Internet banking functionality to customers via their web browser." "JavaScript and Angular" "Web Browser"
                 mobileApp = container "Mobile App" "Provides a limited subset of the Internet banking functionality to customers via their mobile device." "Xamarin" "Mobile App"
                 webApplication = container "Web Application" "Delivers the static content and the Internet banking single page application." "Java and Spring MVC"
-                apiApplication = container "API Application" "Provides Internet banking functionality via a JSON/HTTPS API." "Java and Spring MVC" {
-                    signinController = component "Sign In Controller" "Allows users to sign in to the Internet Banking System." "Spring MVC Rest Controller"
-                    accountsSummaryController = component "Accounts Summary Controller" "Provides customers with a summary of their bank accounts." "Spring MVC Rest Controller"
-                    resetPasswordController = component "Reset Password Controller" "Allows users to reset their passwords with a single use URL." "Spring MVC Rest Controller"
-                    securityComponent = component "Security Component" "Provides functionality related to signing in, changing passwords, etc." "Spring Bean"
-                    mainframeBankingSystemFacade = component "Mainframe Banking System Facade" "A facade onto the mainframe banking system." "Spring Bean"
-                    emailComponent = component "E-mail Component" "Sends e-mails to users." "Spring Bean"
-                }
+                apiApplication = container "API Application" "Provides Internet banking functionality via a JSON/HTTPS API." "Java and Spring MVC"
                 database = container "Database" "Stores user registration information, hashed authentication credentials, access logs, etc." "Oracle Database Schema" "Database"
             }
         }
@@ -50,22 +37,42 @@ workspace "Big Bank plc" "This is an example workspace to illustrate the key fea
         customer -> mobileApp "Views account balances, and makes payments using"
         webApplication -> singlePageApplication "Delivers to the customer's web browser"
 
-        # relationships to/from components
-        singlePageApplication -> signinController "Makes API calls to" "JSON/HTTPS"
-        singlePageApplication -> accountsSummaryController "Makes API calls to" "JSON/HTTPS"
-        singlePageApplication -> resetPasswordController "Makes API calls to" "JSON/HTTPS"
-        mobileApp -> signinController "Makes API calls to" "JSON/HTTPS"
-        mobileApp -> accountsSummaryController "Makes API calls to" "JSON/HTTPS"
-        mobileApp -> resetPasswordController "Makes API calls to" "JSON/HTTPS"
-        signinController -> securityComponent "Uses"
-        accountsSummaryController -> mainframeBankingSystemFacade "Uses"
-        resetPasswordController -> securityComponent "Uses"
-        resetPasswordController -> emailComponent "Uses"
-        securityComponent -> database "Reads from and writes to" "JDBC"
-        mainframeBankingSystemFacade -> mainframe "Makes API calls to" "XML/HTTPS"
-        emailComponent -> email "Sends e-mail using"
+        deploymentEnvironment "Production" {
+            deploymentNode "Amazon Web Services" {
+                tags "Amazon Web Services - Cloud"
+                region = deploymentNode "US-East-1" {
+                    tags "Amazon Web Services - Region"
+                    route53 = infrastructureNode "Route 53" {
+                        description "Highly available and scalable cloud DNS service."
+                        tags "Amazon Web Services - Route 53"
+                    }
+                    elb = infrastructureNode "Elastic Load Balancer" {
+                        description "Automatically distributes incoming application traffic."
+                        tags "Amazon Web Services - Elastic Load Balancing"
+                    }
+                    deploymentNode "Autoscaling group" {
+                        tags "Amazon Web Services - Auto Scaling"
+                        deploymentNode "Amazon EC2 Web" {
+                            tags "Amazon Web Services - EC2"
+                            webApplicationInstance = containerInstance webApplication
+                            apiApplicationInstance = containerInstance apiApplication
+                        }
+                    }
+                    deploymentNode "Amazon RDS" {
+                        tags "Amazon Web Services - RDS"
 
-        deploymentEnvironment "Development" {
+                        deploymentNode "MySQL" {
+                            tags "Amazon Web Services - RDS MySQL instance"
+                            databaseInstance = containerInstance database
+                        }
+                    }
+                }
+            }
+            route53 -> elb "Forwards requests to" "HTTPS"
+            elb -> webApplicationInstance "Forwards requests to" "HTTPS"
+        }
+
+        deploymentEnvironment "Local" {
             deploymentNode "Developer Laptop" "" "Microsoft Windows 10 or Apple macOS" {
                 deploymentNode "Web Browser" "" "Chrome, Firefox, Safari, or Edge" {
                     developerSinglePageApplicationInstance = containerInstance singlePageApplication
@@ -87,47 +94,6 @@ workspace "Big Bank plc" "This is an example workspace to illustrate the key fea
                     softwareSystemInstance mainframe
                 }
             }
-
-        }
-
-        deploymentEnvironment "Live" {
-            deploymentNode "Customer's mobile device" "" "Apple iOS or Android" {
-                liveMobileAppInstance = containerInstance mobileApp
-            }
-            deploymentNode "Customer's computer" "" "Microsoft Windows or Apple macOS" {
-                deploymentNode "Web Browser" "" "Chrome, Firefox, Safari, or Edge" {
-                    liveSinglePageApplicationInstance = containerInstance singlePageApplication
-                }
-            }
-
-            deploymentNode "Big Bank plc" "" "Big Bank plc data center" {
-                deploymentNode "bigbank-web***" "" "Ubuntu 16.04 LTS" "" 4 {
-                    deploymentNode "Apache Tomcat" "" "Apache Tomcat 8.x" {
-                        liveWebApplicationInstance = containerInstance webApplication
-                    }
-                }
-                deploymentNode "bigbank-api***" "" "Ubuntu 16.04 LTS" "" 8 {
-                    deploymentNode "Apache Tomcat" "" "Apache Tomcat 8.x" {
-                        liveApiApplicationInstance = containerInstance apiApplication
-                    }
-                }
-
-                deploymentNode "bigbank-db01" "" "Ubuntu 16.04 LTS" {
-                    primaryDatabaseServer = deploymentNode "Oracle - Primary" "" "Oracle 12c" {
-                        livePrimaryDatabaseInstance = containerInstance database
-                    }
-                }
-                deploymentNode "bigbank-db02" "" "Ubuntu 16.04 LTS" "Failover" {
-                    secondaryDatabaseServer = deploymentNode "Oracle - Secondary" "" "Oracle 12c" "Failover" {
-                        liveSecondaryDatabaseInstance = containerInstance database "Failover"
-                    }
-                }
-                deploymentNode "bigbank-prod001" "" "" "" {
-                    softwareSystemInstance mainframe
-                }
-            }
-
-            primaryDatabaseServer -> secondaryDatabaseServer "Replicates data to"
         }
     }
 
@@ -137,113 +103,21 @@ workspace "Big Bank plc" "This is an example workspace to illustrate the key fea
             autoLayout
         }
 
-        systemcontext internetBankingSystem "SystemContext" {
+        # Systems
+        !include view/internetBankingSystem.dsl
+
+        # Deployments
+        deployment * "Production" "ProductionDeployments" {
             include *
-            animation {
-                internetBankingSystem
-                customer
-                mainframe
-                email
-            }
-            autoLayout
+            autolayout lr
         }
-
-        container internetBankingSystem "Containers" {
+        deployment * "Local" "LocalDeployments" {
             include *
-            animation {
-                customer mainframe email
-                webApplication
-                singlePageApplication
-                mobileApp
-                apiApplication
-                database
-            }
             autoLayout
         }
 
-        component apiApplication "Components" {
-            include *
-            animation {
-                singlePageApplication mobileApp database email mainframe
-                signinController securityComponent
-                accountsSummaryController mainframeBankingSystemFacade
-                resetPasswordController emailComponent
-            }
-            autoLayout
-        }
-
-        dynamic apiApplication "SignIn" "Summarises how the sign in feature works in the single-page application." {
-            singlePageApplication -> signinController "Submits credentials to"
-            signinController -> securityComponent "Validates credentials using"
-            securityComponent -> database "select * from users where username = ?"
-            database -> securityComponent "Returns user data to"
-            securityComponent -> signinController "Returns true if the hashed password matches"
-            signinController -> singlePageApplication "Sends back an authentication token to"
-            autoLayout
-        }
-
-        deployment internetBankingSystem "Development" "DevelopmentDeployment" {
-            include *
-            animation {
-                developerSinglePageApplicationInstance
-                developerWebApplicationInstance developerApiApplicationInstance
-                developerDatabaseInstance
-            }
-            autoLayout
-        }
-
-        deployment internetBankingSystem "Live" "LiveDeployment" {
-            include *
-            animation {
-                liveSinglePageApplicationInstance
-                liveMobileAppInstance
-                liveWebApplicationInstance liveApiApplicationInstance
-                livePrimaryDatabaseInstance
-                liveSecondaryDatabaseInstance
-            }
-            autoLayout
-        }
-
-        styles {
-            element "Person" {
-                color #ffffff
-                fontSize 22
-                shape Person
-            }
-            element "Customer" {
-                background #08427b
-            }
-            element "Bank Staff" {
-                background #999999
-            }
-            element "Software System" {
-                background #1168bd
-                color #ffffff
-            }
-            element "Existing System" {
-                background #999999
-                color #ffffff
-            }
-            element "Container" {
-                background #438dd5
-                color #ffffff
-            }
-            element "Web Browser" {
-                shape WebBrowser
-            }
-            element "Mobile App" {
-                shape MobileDeviceLandscape
-            }
-            element "Database" {
-                shape Cylinder
-            }
-            element "Component" {
-                background #85bbf0
-                color #000000
-            }
-            element "Failover" {
-                opacity 25
-            }
-        }
+        !include style.dsl
+        # theme for AWS
+        themes https://static.structurizr.com/themes/amazon-web-services-2020.04.30/theme.json
     }
 }
