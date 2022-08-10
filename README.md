@@ -1,9 +1,9 @@
 # How
 ```sh
-sh clean.sh && docker-compose run export
+sh clean.sh && docker-compose run export && docker-compose run gen-image
 ```
 
-This will generate plantuml files in `./build/*` for `app.dsl`.
+This will generate png files in `./plantuml/build/*` for `app.dsl`.
 
 ## More
 ```sh

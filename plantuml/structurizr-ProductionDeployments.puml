@@ -1,0 +1,107 @@
+@startuml
+title Deployment - Production
+
+left to right direction
+
+skinparam {
+  shadowing false
+  arrowFontSize 10
+  defaultTextAlignment center
+  wrapWidth 200
+  maxMessageSize 100
+}
+
+hide stereotype
+
+skinparam rectangle<<Production.AmazonWebServices.USEast1.Autoscalinggroup.AmazonEC2Web.APIApplication_1>> {
+  BackgroundColor #438dd5
+  FontColor #ffffff
+  BorderColor #2e6295
+  roundCorner 20
+}
+skinparam node<<Production.AmazonWebServices.USEast1.Autoscalinggroup.AmazonEC2Web>> {
+  BackgroundColor #ffffff
+  FontColor #d86613
+  BorderColor #d86613
+  roundCorner 20
+}
+skinparam node<<Production.AmazonWebServices.USEast1.AmazonRDS>> {
+  BackgroundColor #ffffff
+  FontColor #3b48cc
+  BorderColor #3b48cc
+  roundCorner 20
+}
+skinparam node<<Production.AmazonWebServices>> {
+  BackgroundColor #ffffff
+  FontColor #232f3e
+  BorderColor #232f3e
+  roundCorner 20
+}
+skinparam node<<Production.AmazonWebServices.USEast1.Autoscalinggroup>> {
+  BackgroundColor #ffffff
+  FontColor #cc2264
+  BorderColor #cc2264
+  roundCorner 20
+}
+skinparam database<<Production.AmazonWebServices.USEast1.AmazonRDS.MySQL.Database_1>> {
+  BackgroundColor #438dd5
+  FontColor #ffffff
+  BorderColor #2e6295
+}
+skinparam rectangle<<Production.AmazonWebServices.USEast1.ElasticLoadBalancer>> {
+  BackgroundColor #ffffff
+  FontColor #693cc5
+  BorderColor #693cc5
+  roundCorner 20
+}
+skinparam node<<Production.AmazonWebServices.USEast1.AmazonRDS.MySQL>> {
+  BackgroundColor #ffffff
+  FontColor #3b48cc
+  BorderColor #3b48cc
+  roundCorner 20
+}
+skinparam rectangle<<Production.AmazonWebServices.USEast1.Route53>> {
+  BackgroundColor #ffffff
+  FontColor #693cc5
+  BorderColor #693cc5
+  roundCorner 20
+}
+skinparam node<<Production.AmazonWebServices.USEast1>> {
+  BackgroundColor #ffffff
+  FontColor #147eba
+  BorderColor #147eba
+  roundCorner 20
+}
+skinparam rectangle<<Production.AmazonWebServices.USEast1.Autoscalinggroup.AmazonEC2Web.WebApplication_1>> {
+  BackgroundColor #438dd5
+  FontColor #ffffff
+  BorderColor #2e6295
+  roundCorner 20
+}
+
+node "Amazon Web Services\n[Deployment Node]" <<Production.AmazonWebServices>> as Production.AmazonWebServices {
+  node "US-East-1\n[Deployment Node]" <<Production.AmazonWebServices.USEast1>> as Production.AmazonWebServices.USEast1 {
+    node "Amazon RDS\n[Deployment Node]" <<Production.AmazonWebServices.USEast1.AmazonRDS>> as Production.AmazonWebServices.USEast1.AmazonRDS {
+      node "MySQL\n[Deployment Node]" <<Production.AmazonWebServices.USEast1.AmazonRDS.MySQL>> as Production.AmazonWebServices.USEast1.AmazonRDS.MySQL {
+        database "==Database\n<size:10>[Container: Oracle Database Schema]</size>\n\nStores user registration information, hashed authentication credentials, access logs, etc." <<Production.AmazonWebServices.USEast1.AmazonRDS.MySQL.Database_1>> as Production.AmazonWebServices.USEast1.AmazonRDS.MySQL.Database_1
+      }
+
+    }
+
+    node "Autoscaling group\n[Deployment Node]" <<Production.AmazonWebServices.USEast1.Autoscalinggroup>> as Production.AmazonWebServices.USEast1.Autoscalinggroup {
+      node "Amazon EC2 Web\n[Deployment Node]" <<Production.AmazonWebServices.USEast1.Autoscalinggroup.AmazonEC2Web>> as Production.AmazonWebServices.USEast1.Autoscalinggroup.AmazonEC2Web {
+        rectangle "==API Application\n<size:10>[Container: Java and Spring MVC]</size>\n\nProvides Internet banking functionality via a JSON/HTTPS API." <<Production.AmazonWebServices.USEast1.Autoscalinggroup.AmazonEC2Web.APIApplication_1>> as Production.AmazonWebServices.USEast1.Autoscalinggroup.AmazonEC2Web.APIApplication_1
+        rectangle "==Web Application\n<size:10>[Container: Java and Spring MVC]</size>\n\nDelivers the static content and the Internet banking single page application." <<Production.AmazonWebServices.USEast1.Autoscalinggroup.AmazonEC2Web.WebApplication_1>> as Production.AmazonWebServices.USEast1.Autoscalinggroup.AmazonEC2Web.WebApplication_1
+      }
+
+    }
+
+    rectangle "==Elastic Load Balancer\n<size:10>[Infrastructure Node]</size>\n\nAutomatically distributes incoming application traffic." <<Production.AmazonWebServices.USEast1.ElasticLoadBalancer>> as Production.AmazonWebServices.USEast1.ElasticLoadBalancer
+    rectangle "==Route 53\n<size:10>[Infrastructure Node]</size>\n\nHighly available and scalable cloud DNS service." <<Production.AmazonWebServices.USEast1.Route53>> as Production.AmazonWebServices.USEast1.Route53
+  }
+
+}
+
+Production.AmazonWebServices.USEast1.Route53 .[#707070,thickness=2].> Production.AmazonWebServices.USEast1.ElasticLoadBalancer : "<color:#707070>Forwards requests to\n<color:#707070><size:8>[HTTPS]</size>"
+Production.AmazonWebServices.USEast1.ElasticLoadBalancer .[#707070,thickness=2].> Production.AmazonWebServices.USEast1.Autoscalinggroup.AmazonEC2Web.WebApplication_1 : "<color:#707070>Forwards requests to\n<color:#707070><size:8>[HTTPS]</size>"
+@enduml

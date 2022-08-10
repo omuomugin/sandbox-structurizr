@@ -5,9 +5,18 @@ services:
     image: structurizr/cli:latest
     volumes:
       - ./:/usr/local/structurizr
-    command: export -workspace app.dsl -format plantuml -output build
+    command: export -workspace app.dsl -format plantuml -output plantuml
   validate:
     image: structurizr/cli:latest
     volumes:
       - ./:/usr/local/structurizr
     command: validate -workspace app.dsl
+  gen-image:
+    build:
+      context: ./plantuml
+      dockerfile: Dockerfile
+    platform: linux/amd64
+    volumes:
+      - ./:/data
+    command: plantuml -o "./build" "./*.puml"
+
